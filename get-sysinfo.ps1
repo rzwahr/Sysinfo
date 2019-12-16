@@ -1,8 +1,6 @@
 ﻿Import-Module -Global -Name .\modSysinfo.psm1 -Force
 
-Set-HostList | Out-File -FilePath .\hosts.txt
-
-$hosts = Get-Content -Path '.\hosts.txt'
+$hosts = Get-HostList
 
 foreach($ComputerName in $hosts)
 {
@@ -24,6 +22,7 @@ foreach($ComputerName in $hosts)
       $varOS              = Get-WmiObject -ComputerName $ComputerName -Class Win32_OperatingSystem
       $varDisks           = Get-WmiObject -ComputerName $ComputerName -Class Win32_LogicalDisk -Filter 'DriveType = 3'
       $varTapeDrive       = Get-WmiObject -ComputerName $ComputerName -Class Win32_TapeDrive
+      $varSwCommand        = "Get-InstalledSoftware -ComputerName . | Where-Object {(`$_.DisplayName -like `"Microsoft*`" -or `$_.DisplayName -like `"*fax*`" -or `$_.DisplayName -like `"*Backup*`" -or `$_.DisplayName -like `"*Symantec*`" -or `$_.DisplayName -like `"*Allscripts*`" -or `$_.DisplayName -like `"*Misys*`" -or `$_.DisplayName -like `"*Brooktrout*`") -and (`$_.DisplayName -notlike `"*KB*`" -and `$_.DisplayName -notlike `"*Update*`" -and `$_.DisplayName -notlike `"*Hotfix*`" -and `$_.DisplayName -notlike `"*C++*`" -and `$_.DisplayName -notlike `"*Visual*`" -and `$_.DisplayName -notlike `"*.Net*`")}"
   
       # Formats
       $fmtDbName          = @{
@@ -72,7 +71,7 @@ foreach($ComputerName in $hosts)
         alignment  = 'left'
         width      = 20
         Expression = {
-          $_.DisplayVersion
+          $_.Version
         }
       }
       $fmtDrive           = @{
@@ -250,7 +249,10 @@ foreach($ComputerName in $hosts)
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '     INSTALLED SOFTWARE' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
-      Get-InstalledSoftware -ComputerName $ComputerName -ErrorAction SilentlyContinue | Out-File -Append -FilePath $ComputerName-sysinfo.txt
+      Invoke-Expression -Command $varSwCommand |
+      Select-Object -Property DisplayName, Version |
+      Format-Table -Property $fmtSWName, $fmtSWversion |
+      Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt

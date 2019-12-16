@@ -1,5 +1,4 @@
-﻿
-function Get-Faxboard
+﻿function Get-Faxboard
 {
   [CmdletBinding()]
   param(
@@ -46,19 +45,187 @@ function Get-DomainRole
     $role[('{0}' -f ($type))]
   }
 }
-function Get-InstalledSoftware
-{
-  [CmdletBinding()]
-  param
-  (
-    [string]$ComputerName = '.'
+function Get-InstalledSoftware {
+  <#
+      .SYNOPSIS
+      Pull software details from registry on one or more computers
+
+      .DESCRIPTION
+      Pull software details from registry on one or more computers.  Details:
+      -This avoids the performance impact and potential danger of using the WMI Win32_Product class
+      -The computer name, display name, publisher, version, uninstall string and install date are included in the results
+      -Remote registry must be enabled on the computer(s) you query
+      -This command must run with privileges to query the registry of the remote system(s)
+      -Running this in a 32 bit PowerShell session on a 64 bit computer will limit your results to 32 bit software and result in double entries in the results
+
+      .PARAMETER ComputerName
+      One or more computers to pull software list from.
+
+      .PARAMETER DisplayName
+      If specified, return only software with DisplayNames that match this parameter (uses -match operator)
+
+      .PARAMETER Publisher
+      If specified, return only software with Publishers that match this parameter (uses -match operator)
+
+      .EXAMPLE
+      #Pull all software from c-is-ts-91, c-is-ts-92, format in a table
+      Get-InstalledSoftware c-is-ts-91, c-is-ts-92 | Format-Table -AutoSize
+
+      .EXAMPLE
+      #pull software with publisher matching microsoft and displayname matching lync from c-is-ts-91
+      "c-is-ts-91" | Get-InstalledSoftware -DisplayName lync -Publisher microsoft | Format-Table -AutoSize
+
+      .LINK
+      http://gallery.technet.microsoft.com/scriptcenter/Get-InstalledSoftware-Get-5607a465
+
+      .FUNCTIONALITY
+      Computers
+  #>
+  param (
+    [Parameter(
+        Position = 0,
+        ValueFromPipeline=$true,
+        ValueFromPipelineByPropertyName=$true, 
+        ValueFromRemainingArguments=$false
+    )]
+    [ValidateNotNullOrEmpty()]
+    [Alias('CN','__SERVER','Server','Computer')]
+    [string[]]$ComputerName = $env:computername,
+        
+    [string]$DisplayName = $null,
+        
+    [string]$Publisher = $null
   )
-  process
+
+  Begin
   {
+        
+    #define uninstall keys to cover 32 and 64 bit operating systems.
+    #This will yeild only 32 bit software and double entries on 64 bit systems running 32 bit PowerShell
+    $UninstallKeys = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+    'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'
+
+  }
+
+  Process
+  {
+
+    #Loop through each provided computer.  Provide a label for error handling to continue with the next computer.
+    :computerLoop foreach($computer in $computername)
+    {
+            
+      Try
+      {
+        #Attempt to connect to the localmachine hive of the specified computer
+        $reg=[microsoft.win32.registrykey]::OpenRemoteBaseKey('LocalMachine',$computer)
+      }
+      Catch
+      {
+        #Skip to the next computer if we can't talk to this one
+        Write-Error ("Error:  Could not open LocalMachine hive on {0}`: {1}" -f $computer, $_)
+        Write-Verbose ("Check Connectivity, permissions, and Remote Registry service for '{0}'" -f $computer)
+        Continue
+      }
+
+      #Loop through the 32 bit and 64 bit registry keys
+      foreach($uninstallKey in $UninstallKeys)
+      {
+            
+        Try
+        {
+          #Open the Uninstall key
+          $regkey = $null
+          $regkey = $reg.OpenSubKey($UninstallKey)
+
+          #If the reg key exists...
+          if($regkey)
+          {    
+                                        
+            #Retrieve an array of strings containing all the subkey names
+            $subkeys = $regkey.GetSubKeyNames()
+
+            #Open each Subkey and use GetValue Method to return the required values for each
+            foreach($key in $subkeys)
+            {
+
+              #Build the full path to the key for this software
+              $thisKey = $UninstallKey+'\\'+$key 
+                            
+              #Open the subkey for this software
+              $thisSubKey = $null
+              $thisSubKey=$reg.OpenSubKey($thisKey)
+                            
+              #If the subkey exists
+              if($thisSubKey){
+                try
+                {
+                            
+                  #Get the display name.  If this is not empty we know there is information to show
+                  $dispName = $thisSubKey.GetValue('DisplayName')
+                                
+                  #Get the publisher name ahead of time to allow filtering using Publisher parameter
+                  $pubName = $thisSubKey.GetValue('Publisher')
+
+                  #Collect subset of values from the key if there is a displayname
+                  #Filter by displayname and publisher if specified
+                  if( $dispName -and
+                    (-not $DisplayName -or $dispName -match $DisplayName ) -and
+                    (-not $Publisher -or $pubName -match $Publisher )
+                  )
+                  {
+
+                    #Display the output object, compatible with PowerShell 2
+                    New-Object PSObject -Property @{
+                      ComputerName = $computer
+                      DisplayName = $dispname
+                      Publisher = $pubName
+                      Version = $thisSubKey.GetValue('DisplayVersion')
+                      UninstallString = $thisSubKey.GetValue('UninstallString') 
+                      InstallDate = $thisSubKey.GetValue('InstallDate')
+                    } | Select-Object ComputerName, DisplayName, Publisher, Version, UninstallString, InstallDate
+                  }
+                }
+                Catch
+                {
+                  #Error with one specific subkey, continue to the next
+                  Write-Error ('Unknown error: {0}' -f $_)
+                  Continue
+                }
+              }
+            }
+          }
+        }
+        Catch
+        {
+
+          #Write verbose output if we couldn't open the uninstall key
+          Write-Verbose ("Could not open key '{0}' on computer '{1}': {2}" -f $uninstallkey, $computer, $_)
+
+          #If we see an access denied message, let the user know and provide details, continue to the next computer
+          if($_ -match 'Requested registry access is not allowed'){
+            Write-Error ('Registry access to {0} denied.  Check your permissions.  Details: {1}' -f $computer, $_)
+            continue computerLoop
+          }
+                    
+        }
+      }
+    }
+  }
+}
+
+<#function Get-InstalledSoftware
+    {
+    [CmdletBinding()]
+    param
+    (
+    [string]$ComputerName = '.'
+    )
+    process
+    {
     $service        = Get-Service -ComputerName $ComputerName -Name 'RemoteRegistry'
     if ($service -ne 'Running')
     {
-      Get-Service -ComputerName $ComputerName -Name 'RemoteRegistry' | Start-Service
+    Get-Service -ComputerName $ComputerName -Name 'RemoteRegistry' | Start-Service
     }
     $array          = @()
     $basekey        = [Microsoft.Win32.RegistryHive]::LocalMachine
@@ -73,38 +240,40 @@ function Get-InstalledSoftware
     #Open each Subkey and use GetValue Method to return the required values for each
     foreach($key in $subkeys32)
     {
-      $thisKey    =  $UninstallKey32+'\' + $key
-      $thisSubKey =  $reg.OpenSubKey($thisKey)
-      $obj        =  New-Object -TypeName PSObject
-      $obj | Add-Member -MemberType NoteProperty -Name 'ComputerName' -Value $ComputerName
-      $obj | Add-Member -MemberType NoteProperty -Name 'DisplayName' -Value $($thisSubKey.GetValue('DisplayName'))
-      $obj | Add-Member -MemberType NoteProperty -Name 'DisplayVersion' -Value $($thisSubKey.GetValue('DisplayVersion'))
-      $obj | Add-Member -MemberType NoteProperty -Name 'InstallLocation' -Value $($thisSubKey.GetValue('InstallLocation'))
-      $obj | Add-Member -MemberType NoteProperty -Name 'Publisher' -Value $($thisSubKey.GetValue('Publisher'))
-      $array      += $obj
+    $thisKey    = $UninstallKey32+'\' + $key
+    $thisSubKey = $reg.OpenSubKey($thisKey)
+    $obj        = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name 'ComputerName' -Value $ComputerName
+    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayName' -Value $($thisSubKey.GetValue('DisplayName'))
+    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayVersion' -Value $($thisSubKey.GetValue('DisplayVersion'))
+    $obj | Add-Member -MemberType NoteProperty -Name 'InstallLocation' -Value $($thisSubKey.GetValue('InstallLocation'))
+    $obj | Add-Member -MemberType NoteProperty -Name 'Publisher' -Value $($thisSubKey.GetValue('Publisher'))
+    $array      += $obj
     }
     foreach ($key in $subkeys64)
     {
-      $thisKey    =  $UninstallKey64+'\'+$key
-      $thisSubKey =  $reg.OpenSubKey($thisKey)
-      $obj        =  New-Object -TypeName PSObject
-      $obj | Add-Member -MemberType NoteProperty -Name 'ComputerName' -Value $ComputerName
-      $obj | Add-Member -MemberType NoteProperty -Name 'DisplayName' -Value $($thisSubKey.GetValue('DisplayName'))
-      $obj | Add-Member -MemberType NoteProperty -Name 'DisplayVersion' -Value $($thisSubKey.GetValue('DisplayVersion'))
-      $obj | Add-Member -MemberType NoteProperty -Name 'InstallDate' -Value $($thisSubKey.GetValue('InstallDate'))
-      $obj | Add-Member -MemberType NoteProperty -Name 'Publisher' -Value $($thisSubKey.GetValue('Publisher'))
-      $array      += $obj
+    $thisKey    = $UninstallKey64+'\'+$key
+    $thisSubKey = $reg.OpenSubKey($thisKey)
+    $obj        = New-Object -TypeName PSObject
+    $obj | Add-Member -MemberType NoteProperty -Name 'ComputerName' -Value $ComputerName
+    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayName' -Value $($thisSubKey.GetValue('DisplayName'))
+    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayVersion' -Value $($thisSubKey.GetValue('DisplayVersion'))
+    $obj | Add-Member -MemberType NoteProperty -Name 'InstallDate' -Value $($thisSubKey.GetValue('InstallDate'))
+    $obj | Add-Member -MemberType NoteProperty -Name 'Publisher' -Value $($thisSubKey.GetValue('Publisher'))
+    $array      += $obj
     }
     #$array | Where-Object { $_.DisplayName } | Select-Object -Property DisplayName, DisplayVersion | Format-Table -AutoSize
     return $array |
     Where-Object -FilterScript {
-      ($_.DisplayName) -and ($_.DisplayName -notlike '*(KB*)*') -and ($_.DisplayName -notlike '*Hotfix*')
+    ($_.DisplayName) -and ($_.DisplayName -notlike '*(KB*)*') -and ($_.DisplayName -notlike '*Hotfix*')
     } |
     Select-Object -Property DisplayName, DisplayVersion |
     Sort-Object -Property DisplayName |
     Get-Unique -AsString
-  }
-}
+    }
+    }
+#>
+
 function Get-IPv4Addr
 {
   [CmdletBinding()]
@@ -163,7 +332,7 @@ function Get-PercInfo
     $PsCommandBase  = 'echo . | powershell -ExecutionPolicy Bypass '
     # The actual command you want to be passed in to powershell (example)
     # $SqlQuery = "sqlcmd.exe -Q 'SELECT @@version;'`n sqlcmd.exe -Q 'sp_helpdb;'"
-    $MyCommand      = 'perccli.exe /c0 show'
+    $MyCommand      = 'C:\temp\perccli.exe /c0 show'
     # We'll encode the command string to prevent cmd.exe from mangling it
     $encodedcommand = [convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($MyCommand))
     # build the actual full command to send to powershell
@@ -178,13 +347,13 @@ function Get-PercInfo
     {
       try
       {
-        If (Test-Path -Path ('{0}\perccli.exe' -f $PWD))
+        If (Test-Path -Path ('{0}\Tools\perccli.exe' -f $PWD))
         {
-          $output = .\perccli.exe /c0 show
+          $output = .\Tools\perccli.exe /c0 show
         }
         else
         {
-          'Please insure perccli.exe is present in the current directory and try again.'
+          'Please insure perccli.exe is present in the Tools directory and try again.'
         }
       }
       catch
@@ -198,16 +367,16 @@ function Get-PercInfo
     {
       try
       {
-        If ((Test-Path -Path ('{0}\perccli.exe' -f $PWD)) -and (Test-Path -Path ('{0}\psexec.exe' -f $PWD)))
+        If ((Test-Path -Path ('{0}\Tools\perccli.exe' -f $PWD)) -and (Test-Path -Path ('{0}\Tools\psexec.exe' -f $PWD)))
         {
-          Copy-Item -Path .\perccli.exe -Destination \\$ComputerName\c$\Windows
-          $output = .\psexec.exe -nobanner -accepteula \\$ComputerName cmd /c $PsCommand
-          Remove-Item -Path \\$ComputerName\c$\Windows\perccli.exe
+          Copy-Item -Path .\Tools\perccli.exe -Destination \\$ComputerName\c$\temp
+          $output = .\Tools\psexec.exe -nobanner -accepteula \\$ComputerName cmd /c $PsCommand
+          Remove-Item -Path \\$ComputerName\c$\temp\perccli.exe
         }
         else
         {
-          'Either one or both of the following files is not present in the current directory: perccli.exe, psexec.exe'
-          'Please insure both of these files are present in the current directory and try again.'
+          'Either one or both of the following files is not present in the Tools directory: perccli.exe, psexec.exe'
+          'Please insure both of these files are present in the Tools directory and try again.'
         }
       }
       catch
@@ -286,23 +455,23 @@ function Invoke-Sqlcmd2
     ('Error was in Line {0}' -f $line)
   }
 }
-function Set-HostList
+function Get-HostList
 {
   process
   {
     $ErrorActionPreference = 'SilentlyContinue'
-    $ServerList            = @()
-    $Servers               = @()
-    $ServerList            = Get-ADComputer -Filter 'OperatingSystem -like "Windows*Server*"'-Properties Name | Select-Object -ExpandProperty Name
+    $ComputerList            = @()
+    $Computers               = @()
+    $ComputerList            = Get-ADComputer -Filter 'OperatingSystem -like "Windows*Server*"'-Properties Name | Select-Object -ExpandProperty Name
     if (Get-Command -Name Get-ADComputer)
     {
-      foreach ($Server in $ServerList) 
+      foreach ($Computer in $ComputerList) 
       {
-        if (Test-Connection -ComputerName $Server -Quiet -Count 1)
+        if (Test-Connection -ComputerName $Computer -Quiet -Count 1)
         {
-          if (Get-WmiObject -Class Win32_OperatingSystem -ComputerName $Server)
+          if (Get-WmiObject -Class Win32_OperatingSystem -ComputerName $Computer)
           {
-            $Servers = $Servers += $Server
+            $Computers = $Computers += $Computer
           }
         }
       }
@@ -312,7 +481,7 @@ function Set-HostList
       'Active Directory commands not present, attempting to import Active Directory module.'
       Import-Module -Global -Name Microsoft.ActiveDirectory.Management.dll
     }
-    return $servers
+    return $Computers
   }
 }
 function Get-LogOns

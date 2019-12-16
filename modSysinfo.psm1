@@ -479,7 +479,7 @@ function Get-HostList
     else
     {
       'Active Directory commands not present, attempting to import Active Directory module.'
-      Import-Module -Global -Name Microsoft.ActiveDirectory.Management.dll
+      Import-Module -Global -Name .\Tools\Microsoft.ActiveDirectory.Management.dll
     }
     return $Computers
   }

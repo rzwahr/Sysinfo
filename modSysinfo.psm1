@@ -304,7 +304,7 @@ function Get-IPv4Addr
   [CmdletBinding()]
   param
   (
-    [string]$ComputerName = '.'
+    [string]$ComputerName = $env:COMPUTERNAME
   )
   process
   {
@@ -426,6 +426,7 @@ function Get-RDP
     try
     {
       $string = Get-WmiObject -ComputerName $ComputerName -Namespace 'root\CIMV2\TerminalServices' -Class 'Win32_TerminalServiceSetting' -Authentication 6 | Select-Object -ExpandProperty TerminalServerMode
+      $varTermSvc = Get-WmiObject -ComputerName $ComputerName -Class Win32_TerminalService | Select-Object -Property TotalSessions -ExpandProperty TotalSessions
       $output = if ($string -eq '1')
       {
         ('{0} is enabled with Multiple user mode' -f $ComputerName)

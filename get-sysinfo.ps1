@@ -15,6 +15,7 @@ foreach($ComputerName in $hosts)
       # Alarm-level in percent.
   
       # Variables
+      $varDate            = Get-Date
       $varBios            = Get-WmiObject -ComputerName $ComputerName -Class Win32_BIOS
       $varCompSys         = Get-WmiObject -ComputerName $ComputerName -Class Win32_ComputerSystem
       $varMemory          = Get-WmiObject -ComputerName $ComputerName -Class Win32_PhysicalMemory
@@ -157,8 +158,8 @@ foreach($ComputerName in $hosts)
         }
       }
   
-      
-      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
       Write-Output -InputObject '     SYSTEM IDENTIFICATION' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject $('Server Name:		' + $varCompSys.Name) | Out-File -Append -FilePath $ComputerName-sysinfo.txt
@@ -166,11 +167,11 @@ foreach($ComputerName in $hosts)
       Write-Output -InputObject $('Manufacturer:		' + $varCompSys.Manufacturer) | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject $('Model:			' + $varCompSys.Model) | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject $('Domain:			' + $varCompSys.Domain) | Out-File -Append -FilePath $ComputerName-sysinfo.txt
-      $varIPv4addr        = Get-IPv4Addr -ErrorAction SilentlyContinue
+      $varIPv4addr        = Get-IPv4Addr -ComputerName $ComputerName -ErrorAction SilentlyContinue
       Write-Output -InputObject $('IP Address:		' + $varIPv4addr) | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       $DomainRole         = Get-DomainRole -type $varCompSys.DomainRole
       Write-Output -InputObject $('Domain Role:		' + $DomainRole) | Out-File -Append -FilePath $ComputerName-sysinfo.txt
-      Get-RDP -ComputerName $ComputerName -ErrorAction SilentlyContinue
+      Get-RDP -ComputerName $ComputerName -ErrorAction SilentlyContinue | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
@@ -193,7 +194,7 @@ foreach($ComputerName in $hosts)
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '     SYSTEM DEVICES' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
-      Get-SysDevices | Out-File -Append -FilePath $ComputerName-sysinfo.txt
+      Get-SysDevices -ComputerName $ComputerName | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
@@ -242,9 +243,9 @@ foreach($ComputerName in $hosts)
       }
       catch
       {
-        "Error was $_"
+        ('Error was {0}' -f $_)
         $line = $_.InvocationInfo.ScriptLineNumber
-        "Error was in Line $line"
+        ('Error was in Line {0}' -f $line)
       }
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
@@ -252,16 +253,18 @@ foreach($ComputerName in $hosts)
       Write-Output -InputObject '     INSTALLED SOFTWARE' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Invoke-Expression -Command $varSwCommand |
-      Select-Object -Property DisplayName, Version |
-      Format-Table -Property $fmtSWName, $fmtSWversion |
-      Out-File -Append -FilePath $ComputerName-sysinfo.txt
+      Select-Object -Property DisplayName, Version | Sort-Object -Property DisplayName | Format-Table -Property $fmtSWName, $fmtSWversion | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Get-PercInfo -ComputerName $ComputerName -ErrorAction SilentlyContinue | Out-File -Append -FilePath $ComputerName-sysinfo.txt
-      Get-PcList -ErrorAction SilentlyContinue | Out-File -FilePath Workstation-List.txt
+      Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath Workstation-List.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath Workstation-List.txt
+      Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath Workstation-List.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath Workstation-List.txt
+      Get-PcList -ErrorAction SilentlyContinue | Out-File -Append -FilePath Workstation-List.txt
     }
     else 
     {
@@ -270,8 +273,8 @@ foreach($ComputerName in $hosts)
   }
   catch
   {
-    "Error was $_"
+    ('Error was {0}' -f $_)
     $line = $_.InvocationInfo.ScriptLineNumber
-    "Error was in Line $line"
+    ('Error was in Line {0}' -f $line)
   }
 }

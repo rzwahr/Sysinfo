@@ -576,8 +576,8 @@ foreach($ComputerName in $hosts)
         }
       }
   
-      
-      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -FilePath $ComputerName-sysinfo.txt
+      Get-Date | Out-File -FilePath $ComputerName-sysinfo.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '     SYSTEM IDENTIFICATION' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject $('Server Name:		' + $varCompSys.Name) | Out-File -Append -FilePath $ComputerName-sysinfo.txt

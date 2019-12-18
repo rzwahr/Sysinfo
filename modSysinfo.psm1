@@ -357,7 +357,7 @@ function Get-PercInfo
     $PsCommandBase  = 'echo . | powershell -ExecutionPolicy Bypass '
     # The actual command you want to be passed in to powershell (example)
     # $SqlQuery = "sqlcmd.exe -Q 'SELECT @@version;'`n sqlcmd.exe -Q 'sp_helpdb;'"
-    $MyCommand      = 'C:\temp\perccli.exe /c0 show'
+    $MyCommand      = 'C:\perccli.exe /c0 show'
     # We'll encode the command string to prevent cmd.exe from mangling it
     $encodedcommand = [convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($MyCommand))
     # build the actual full command to send to powershell
@@ -392,11 +392,11 @@ function Get-PercInfo
     {
       try
       {
-        If ((Test-Path -Path ('{0}\Tools\perccli.exe' -f $PWD)) -and (Test-Path -Path ('{0}\Tools\psexec.exe' -f $PWD)))
+        If ((Test-Path -Path .\Tools\perccli.exe) -and (Test-Path -Path .\Tools\psexec.exe))
         {
-          Copy-Item -Path .\Tools\perccli.exe -Destination \\$ComputerName\c$\temp
+          Copy-Item -Path .\Tools\perccli.exe -Destination \\$ComputerName\c$
           $output = .\Tools\psexec.exe -nobanner -accepteula \\$ComputerName cmd /c $PsCommand
-          Remove-Item -Path \\$ComputerName\c$\temp\perccli.exe
+          Remove-Item -Path \\$ComputerName\c$\perccli.exe
         }
         else
         {

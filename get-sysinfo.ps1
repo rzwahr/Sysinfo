@@ -22,7 +22,7 @@ foreach($ComputerName in $hosts)
       $varCPU             = Get-WmiObject -ComputerName $ComputerName -Class Win32_Processor
       $varOS              = Get-WmiObject -ComputerName $ComputerName -Class Win32_OperatingSystem
       $varDisks           = Get-WmiObject -ComputerName $ComputerName -Class Win32_LogicalDisk -Filter 'DriveType = 3'
-      $varSwCommand        = "Get-InstalledSoftware -ComputerName . | Where-Object {(`$_.DisplayName -like `"Microsoft*`" -or `$_.DisplayName -like `"*fax*`" -or `$_.DisplayName -like `"*Backup*`" -or `$_.DisplayName -like `"*Symantec*`" -or `$_.DisplayName -like `"*Allscripts*`" -or `$_.DisplayName -like `"*Misys*`" -or `$_.DisplayName -like `"*Brooktrout*`") -and (`$_.DisplayName -notlike `"*KB*`" -and `$_.DisplayName -notlike `"*Update*`" -and `$_.DisplayName -notlike `"*Hotfix*`" -and `$_.DisplayName -notlike `"*C++*`" -and `$_.DisplayName -notlike `"*Visual*`" -and `$_.DisplayName -notlike `"*.Net*`")}"
+      $varSwCommand        = "Get-InstalledSoftware -ComputerName $ComputerName | Where-Object {(`$_.DisplayName -like `"Microsoft*`" -or `$_.DisplayName -like `"*fax*`" -or `$_.DisplayName -like `"*Backup*`" -or `$_.DisplayName -like `"*Symantec*`" -or `$_.DisplayName -like `"*Allscripts*`" -or `$_.DisplayName -like `"*Misys*`" -or `$_.DisplayName -like `"*Brooktrout*`") -and (`$_.DisplayName -notlike `"*KB*`" -and `$_.DisplayName -notlike `"*Update*`" -and `$_.DisplayName -notlike `"*Hotfix*`" -and `$_.DisplayName -notlike `"*C++*`" -and `$_.DisplayName -notlike `"*Visual*`" -and `$_.DisplayName -notlike `"*.Net*`")}"
   
       # Formats
       $fmtDbName          = @{

@@ -1,4 +1,29 @@
-﻿function Get-Faxboard
+﻿function Get-SysDevices
+{
+  [CmdletBinding()]
+  param
+  (
+    [String]$ComputerName = $env:COMPUTERNAME
+  )
+  try
+  {
+    $varPNPEntity = Get-WmiObject -ComputerName $ComputerName -Class Win32_PNPEntity
+    
+    $varScsiDevices = $varPNPEntity | Where-Object {($_.PNPDeviceID -like 'SCSI\*') -and ($_.Manufacturer -notlike '*standard*')} | Select-Object -ExpandProperty Description
+    
+    $varPciDevices = $varPNPEntity | Where-Object {($_.PNPDeviceID -like 'PCI\*') -and ($_.Manufacturer -notlike '*standard*') -and ($_.PNPDeviceID -notlike '*VEN_8086*')} | Select-Object -ExpandProperty Description
+  }
+  catch
+  {
+    "Error was $_"
+    $line = $_.InvocationInfo.ScriptLineNumber
+    "Error was in Line $line"
+  }
+  $varScsiDevices
+  $varPciDevices   
+}
+
+function Get-Faxboard
 {
   [CmdletBinding()]
   param(

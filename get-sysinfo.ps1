@@ -45,6 +45,7 @@ foreach($ComputerName in $hosts)
       # Alarm-level in percent.
   
       # Variables
+      $varDate = Get-Date
       $varBios = Get-WmiObject -ComputerName $ComputerName -Class Win32_BIOS
       $varCompSys = Get-WmiObject -ComputerName $ComputerName -Class Win32_ComputerSystem
       $varMemory = Get-WmiObject -ComputerName $ComputerName -Class Win32_PhysicalMemory
@@ -53,7 +54,7 @@ foreach($ComputerName in $hosts)
       $varDisks = Get-WmiObject -ComputerName $ComputerName -Class Win32_LogicalDisk -Filter 'DriveType = 3'
       $varTapeDrive = Get-WmiObject -ComputerName $ComputerName -Class Win32_TapeDrive
       $varFaxBoard = Get-WmiObject -ComputerName $ComputerName -Class Win32_PnPEntity -Filter "name LIKE 'Brooktrout%'"
-      $varTermSvc = Get-WmiObject -ComputerName $ComputerName -Class Win32_TerminalService | Select-Object -ExpandProperty TotalSessions
+      $varTermSvc = Get-WmiObject -ComputerName $ComputerName -Class Win32_TerminalService | Select-Object -Property TotalSessions -ExpandProperty TotalSessions
   
       # Functions
       <# function Get-SQLInfo
@@ -576,7 +577,7 @@ foreach($ComputerName in $hosts)
         }
       }
   
-      Get-Date | Out-File -FilePath $ComputerName-sysinfo.txt
+      Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\$ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '     SYSTEM IDENTIFICATION' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
@@ -674,7 +675,11 @@ foreach($ComputerName in $hosts)
       Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Get-PercInfo -ComputerName $ComputerName -ErrorAction SilentlyContinue | Out-File -Append -FilePath $ComputerName-sysinfo.txt
-      Get-PcList -ErrorAction SilentlyContinue | Out-File -FilePath Workstation-List.txt
+      Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\Workstation-list.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-list.txt
+      Write-Output -InputObject '     WORKSTATION INFORMATION' | Out-File -Append -FilePath .\Workstation-list.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-list.txt
+      Get-PcList -ErrorAction SilentlyContinue | Out-File -Append -FilePath .\Workstation-list.txt
     }
     else 
     {

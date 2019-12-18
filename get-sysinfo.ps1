@@ -253,18 +253,21 @@ foreach($ComputerName in $hosts)
       Write-Output -InputObject '     INSTALLED SOFTWARE' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Invoke-Expression -Command $varSwCommand |
-      Select-Object -Property DisplayName, Version | Sort-Object -Property DisplayName | Format-Table -Property $fmtSWName, $fmtSWversion | Out-File -Append -FilePath $ComputerName-sysinfo.txt
+      Select-Object -Property DisplayName, Version |
+      Sort-Object -Property DisplayName |
+      Format-Table -Property $fmtSWName, $fmtSWversion |
+      Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath $ComputerName-sysinfo.txt
       Get-PercInfo -ComputerName $ComputerName -ErrorAction SilentlyContinue | Out-File -Append -FilePath $ComputerName-sysinfo.txt
-      Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath Workstation-List.txt
-      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath Workstation-List.txt
-      Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath Workstation-List.txt
-      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath Workstation-List.txt
-      Get-PcList -ErrorAction SilentlyContinue | Out-File -Append -FilePath Workstation-List.txt
+      Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath Workstation-list.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath Workstation-list.txt
+      Write-Output -InputObject '     WORKSTATION INFORMATION' | Out-File -Append -FilePath Workstation-list.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath Workstation-list.txt
+      Get-PcList -ErrorAction SilentlyContinue | Out-File -Append -FilePath Workstation-list.txt
     }
     else 
     {

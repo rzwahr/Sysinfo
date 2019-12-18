@@ -331,9 +331,12 @@ function Get-PcList
     }
     try
     {
-      $output = Get-ADComputer -Filter 'OperatingSystem -notLike "*SERVER*"' -Properties lastlogondate, operatingsystem |
-      Select-Object -Property name, lastlogondate, operatingsystem |
-      Sort-Object -Property LastLogonDate -Descending
+      $output = Get-ADComputer -Filter 'OperatingSystem -notLike "*SERVER*"' -Properties * | Select-Object -Property name, lastlogon, operatingsystem
+      foreach ($item in $output)
+      {
+        $newdate = [datetime]::FromFileTime($item.lastlogon)
+        $item.lastlogon = $newdate
+      }
     }
     catch
     {
@@ -341,7 +344,8 @@ function Get-PcList
       $line = $_.InvocationInfo.ScriptLineNumber
       ('Error was in Line {0}' -f $line)
     }
-    return $output
+    
+    return $output | Sort-Object -Property lastlogon -Descending
   }
 }
 function Get-PercInfo

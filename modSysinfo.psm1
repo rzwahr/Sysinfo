@@ -1,4 +1,7 @@
-﻿function Get-SysDevices
+﻿
+$ErrorActionPreference = "SilentlyContinue"
+
+function Get-SysDevices
 {
   [CmdletBinding()]
   param
@@ -489,7 +492,6 @@ function Get-HostList
 {
   process
   {
-    $ErrorActionPreference = 'SilentlyContinue'
     $ComputerList            = @()
     $Computers               = @()
     $ComputerList            = Get-ADComputer -Filter 'OperatingSystem -like "Windows*Server*"'-Properties Name | Select-Object -ExpandProperty Name
@@ -557,4 +559,12 @@ function Get-LogOns
     }
     return $res
   }
+}
+function Test-SqlSvr
+{
+  param ([string]$ComputerName)
+ Get-Service -ComputerName $ComputerName |
+    Select-Object -Property Status, DisplayName |
+    Where-Object -FilterScript {
+      ($_.DisplayName -like '*SQL Server (MSSQLSERVER)*') -and ($_.Status -eq 'Running')}
 }

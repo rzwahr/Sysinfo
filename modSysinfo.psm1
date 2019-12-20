@@ -241,67 +241,6 @@ function Get-InstalledSoftware {
   }
 }
 
-<#function Get-InstalledSoftware
-    {
-    [CmdletBinding()]
-    param
-    (
-    [string]$ComputerName = '.'
-    )
-    process
-    {
-    $service        = Get-Service -ComputerName $ComputerName -Name 'RemoteRegistry'
-    if ($service -ne 'Running')
-    {
-    Get-Service -ComputerName $ComputerName -Name 'RemoteRegistry' | Start-Service
-    }
-    $array          = @()
-    $basekey        = [Microsoft.Win32.RegistryHive]::LocalMachine
-    $UninstallKey32 = 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
-    $UninstallKey64 = 'SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
-    $reg            = [microsoft.win32.registrykey]::OpenRemoteBaseKey($basekey, $ComputerName)
-    $regkey32       = $reg.OpenSubKey($UninstallKey32)
-    $regkey64       = $reg.OpenSubKey($UninstallKey64)
-    #Retrieve an array of string that contain all the subkey names
-    $subkeys32      = $regkey32.GetSubKeyNames()
-    $subkeys64      = $regkey64.GetSubKeyNames()
-    #Open each Subkey and use GetValue Method to return the required values for each
-    foreach($key in $subkeys32)
-    {
-    $thisKey    = $UninstallKey32+'\' + $key
-    $thisSubKey = $reg.OpenSubKey($thisKey)
-    $obj        = New-Object -TypeName PSObject
-    $obj | Add-Member -MemberType NoteProperty -Name 'ComputerName' -Value $ComputerName
-    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayName' -Value $($thisSubKey.GetValue('DisplayName'))
-    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayVersion' -Value $($thisSubKey.GetValue('DisplayVersion'))
-    $obj | Add-Member -MemberType NoteProperty -Name 'InstallLocation' -Value $($thisSubKey.GetValue('InstallLocation'))
-    $obj | Add-Member -MemberType NoteProperty -Name 'Publisher' -Value $($thisSubKey.GetValue('Publisher'))
-    $array      += $obj
-    }
-    foreach ($key in $subkeys64)
-    {
-    $thisKey    = $UninstallKey64+'\'+$key
-    $thisSubKey = $reg.OpenSubKey($thisKey)
-    $obj        = New-Object -TypeName PSObject
-    $obj | Add-Member -MemberType NoteProperty -Name 'ComputerName' -Value $ComputerName
-    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayName' -Value $($thisSubKey.GetValue('DisplayName'))
-    $obj | Add-Member -MemberType NoteProperty -Name 'DisplayVersion' -Value $($thisSubKey.GetValue('DisplayVersion'))
-    $obj | Add-Member -MemberType NoteProperty -Name 'InstallDate' -Value $($thisSubKey.GetValue('InstallDate'))
-    $obj | Add-Member -MemberType NoteProperty -Name 'Publisher' -Value $($thisSubKey.GetValue('Publisher'))
-    $array      += $obj
-    }
-    #$array | Where-Object { $_.DisplayName } | Select-Object -Property DisplayName, DisplayVersion | Format-Table -AutoSize
-    return $array |
-    Where-Object -FilterScript {
-    ($_.DisplayName) -and ($_.DisplayName -notlike '*(KB*)*') -and ($_.DisplayName -notlike '*Hotfix*')
-    } |
-    Select-Object -Property DisplayName, DisplayVersion |
-    Sort-Object -Property DisplayName |
-    Get-Unique -AsString
-    }
-    }
-#>
-
 function Get-IPv4Addr
 {
   [CmdletBinding()]
@@ -356,7 +295,7 @@ function Get-PercInfo
   [CmdletBinding()]
   param
   (
-    [string]$ComputerName = '.'
+    [string]$ComputerName = $env:COMPUTERNAME
   )
   process
   {
@@ -373,7 +312,6 @@ function Get-PercInfo
     If ($Manufacturer -notlike 'Dell*')
     {
       ('{0} is not a Dell server and is not compatible with perccli.exe' -f $ComputerName)
-      Break
     }
     If ($ComputerName -eq $env:COMPUTERNAME)
     {
@@ -381,7 +319,7 @@ function Get-PercInfo
       {
         If (Test-Path -Path ('{0}\Tools\perccli.exe' -f $PWD))
         {
-          $output = .\Tools\perccli.exe /c0 show
+          $output = .\Tools\perccli.exe /c0 show 2>$null
         }
         else
         {
@@ -563,8 +501,17 @@ function Get-LogOns
 function Test-SqlSvr
 {
   param ([string]$ComputerName)
- Get-Service -ComputerName $ComputerName |
-    Select-Object -Property Status, DisplayName |
-    Where-Object -FilterScript {
-      ($_.DisplayName -like '*SQL Server (MSSQLSERVER)*') -and ($_.Status -eq 'Running')}
+  $IsSql = Get-Service -ComputerName $ComputerName | Select-Object -Property Status, DisplayName | Where-Object -FilterScript {($_.DisplayName -like '*SQL Server (MSSQLSERVER)*') -and ($_.Status -eq 'Running')}
+  if ($IsSql) {return [Bool]1} else {return [Bool]0}
+}
+
+function Test-Dell
+{
+  param ([string]$ComputerName)
+
+  $Manufacturer   = Get-WmiObject -ComputerName $ComputerName -Class Win32_ComputerSystem | Select-Object -Property Manufacturer -ExpandProperty Manufacturer
+
+  if ($manufacturer -like 'Dell*')
+  {return [Bool]1} else {return [Bool]0}  
+
 }

@@ -28,6 +28,7 @@ foreach($ComputerName in $hosts)
     $varRDPInfo         = Get-RDP -ComputerName $ComputerName
     $varSysDevices      = Get-SysDevices -ComputerName $ComputerName
     $varIsSql           = Test-SqlSvr -ComputerName $ComputerName
+    $varIsDell          = Test-Dell -ComputerName $ComputerName
       
     try 
     {
@@ -44,31 +45,42 @@ foreach($ComputerName in $hosts)
       $line = $_.InvocationInfo.ScriptLineNumber
       ('Error occurred in Line {0}' -f $line)
     }
-    try
+    if ($varIsDell)
     {
-      # Content
-      $varPercInfo        = Get-PercInfo -ComputerName $ComputerName
+      try
+      {
+        # Content
+        $varPercInfo        = Get-PercInfo -ComputerName $ComputerName
+      }
+      catch
+      {
+        ('Error gathering Perc data from {1}: Message was {0}' -f $_.Exception.Message, $ComputerName)
+        $line = $_.InvocationInfo.ScriptLineNumber
+        ('Error occurred in Line {0}' -f $line)
+      }
     }
-    catch
+    else
     {
-      ('Error gathering Perc data from {1}: Message was {0}' -f $_.Exception.Message, $ComputerName)
-      $line = $_.InvocationInfo.ScriptLineNumber
-      ('Error occurred in Line {0}' -f $line)
-    }
+      $varPercInfo = "$ComputerName is not a Dell"
+    }   
     
-    try
+    if ($varIsSql)
     {
-      # Content
-      $varSqlVersion      = Invoke-Sqlcmd2 -ComputerName $ComputerName -Query 'sp_SERVER_INFO' | Select-Object -Property attribute_value -ExcludeProperty attribute_id, attribute_name -ExpandProperty attribute_value -Skip 1 -First 1
-      $varDBTotal         = Invoke-Sqlcmd2 -ComputerName $ComputerName -Total | Select-Object -Property UsedSpace -ExpandProperty UsedSpace
-      $varSqlDbs          = Invoke-Sqlcmd2 -ComputerName $ComputerName
+      try
+      {
+        # Content
+        $varSqlVersion      = Invoke-Sqlcmd2 -ComputerName $ComputerName -Query 'sp_SERVER_INFO' | Select-Object -Property attribute_value -ExcludeProperty attribute_id, attribute_name -ExpandProperty attribute_value -Skip 1 -First 1
+        $varDBTotal         = Invoke-Sqlcmd2 -ComputerName $ComputerName -Total | Select-Object -Property UsedSpace -ExpandProperty UsedSpace
+        $varSqlDbs          = Invoke-Sqlcmd2 -ComputerName $ComputerName
+      }
+      catch
+      {
+        ('Error gathering SQL data from {1}: Message was {0}' -f $_.Exception.Message, $ComputerName)
+        $line = $_.InvocationInfo.ScriptLineNumber
+        ('Error occurred in Line {0}' -f $line)
+      }
     }
-    catch
-    {
-      ('Error gathering SQL data from {1}: Message was {0}' -f $_.Exception.Message, $ComputerName)
-      $line = $_.InvocationInfo.ScriptLineNumber
-      ('Error occurred in Line {0}' -f $line)
-    }      
+          
    
     # Formats
     $fmtDbName          = @{
@@ -262,7 +274,6 @@ foreach($ComputerName in $hosts)
     Write-Output -InputObject '     SQL SERVER INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
     Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
     
-    
     if ($varIsSql)
     {
       Write-Output -InputObject $varSqlVersion | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
@@ -288,16 +299,23 @@ foreach($ComputerName in $hosts)
     Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
     Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
     Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $varPercInfo | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    
+    if ($varIsDell)
+    {
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject $varPercInfo | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    }
+  
   }
   else 
   {
     ('{0} is unreachable!' -f $ComputerName)
   }
+  
 }
+
 Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\Workstation-Report.txt
 Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-Report.txt
 Write-Output -InputObject '     WORKSTATION INFORMATION' | Out-File -Append -FilePath .\Workstation-Report.txt

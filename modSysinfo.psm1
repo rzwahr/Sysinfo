@@ -1,6 +1,7 @@
 ﻿
-$ErrorActionPreference = "SilentlyContinue"
+$ErrorActionPreference = 'SilentlyContinue'
 
+Import-Module -Name .\bin\Cassia.dll
 function Get-SysDevices
 {
   [CmdletBinding()]
@@ -8,22 +9,34 @@ function Get-SysDevices
   (
     [String]$ComputerName = $env:COMPUTERNAME
   )
-  try
+  process
   {
-    $varPNPEntity = Get-WmiObject -ComputerName $ComputerName -Class Win32_PNPEntity
+    Write-Verbose -Message "Fetching System Devices on $ComputerName"
+    try
+    {
+      $varPNPEntity = Get-WmiObject -ComputerName $ComputerName -Class Win32_PNPEntity
     
-    $varScsiDevices = $varPNPEntity | Where-Object {($_.PNPDeviceID -like 'SCSI\*') -and ($_.Manufacturer -notlike '*standard*')} | Select-Object -ExpandProperty Description
+      $varScsiDevices = $varPNPEntity |
+      Where-Object -FilterScript {
+        ($_.PNPDeviceID -like 'SCSI\*') -and ($_.Manufacturer -notlike '*standard*')
+      } |
+      Select-Object -ExpandProperty Description
     
-    $varPciDevices = $varPNPEntity | Where-Object {($_.PNPDeviceID -like 'PCI\*') -and ($_.Manufacturer -notlike '*standard*') -and ($_.PNPDeviceID -notlike '*VEN_8086*')} | Select-Object -ExpandProperty Description
-  }
-  catch
-  {
-    "Error was $_"
-    $line = $_.InvocationInfo.ScriptLineNumber
-    "Error was in Line $line"
-  }
-  $varScsiDevices
-  $varPciDevices   
+      $varPciDevices = $varPNPEntity |
+      Where-Object -FilterScript {
+        ($_.PNPDeviceID -like 'PCI\*') -and ($_.Manufacturer -notlike '*standard*') -and ($_.PNPDeviceID -notlike '*VEN_8086*')
+      } |
+      Select-Object -ExpandProperty Description
+    }
+    catch
+    {
+      "Error was $_"
+      $line = $_.InvocationInfo.ScriptLineNumber
+      "Error was in Line $line"
+    }
+    $varScsiDevices
+    $varPciDevices
+  }   
 }
 
 function Get-Faxboard
@@ -73,7 +86,8 @@ function Get-DomainRole
     $role[('{0}' -f ($type))]
   }
 }
-function Get-InstalledSoftware {
+function Get-InstalledSoftware 
+{
   <#
       .SYNOPSIS
       Pull software details from registry on one or more computers
@@ -112,25 +126,26 @@ function Get-InstalledSoftware {
   param (
     [Parameter(
         Position = 0,
-        ValueFromPipeline=$true,
-        ValueFromPipelineByPropertyName=$true, 
-        ValueFromRemainingArguments=$false
+        ValueFromPipeline = $true,
+        ValueFromPipelineByPropertyName = $true, 
+        ValueFromRemainingArguments = $false
     )]
     [ValidateNotNullOrEmpty()]
     [Alias('CN','__SERVER','Server','Computer')]
-    [string[]]$ComputerName = $env:computername,
+    [string[]]$ComputerName = $env:COMPUTERNAME,
         
     [string]$DisplayName = $null,
         
     [string]$Publisher = $null
   )
-
+  
+  
   Begin
   {
-        
+    Write-Verbose -Message "Fetching software inventory from $ComputerName"    
     #define uninstall keys to cover 32 and 64 bit operating systems.
     #This will yeild only 32 bit software and double entries on 64 bit systems running 32 bit PowerShell
-    $UninstallKeys = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+    $UninstallKeys = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall', 
     'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'
 
   }
@@ -139,55 +154,51 @@ function Get-InstalledSoftware {
   {
 
     #Loop through each provided computer.  Provide a label for error handling to continue with the next computer.
-    :computerLoop foreach($computer in $computername)
+    :computerLoop foreach($computer in $ComputerName)
     {
-            
       Try
       {
         #Attempt to connect to the localmachine hive of the specified computer
-        $reg=[microsoft.win32.registrykey]::OpenRemoteBaseKey('LocalMachine',$computer)
+        $reg = [microsoft.win32.registrykey]::OpenRemoteBaseKey('LocalMachine',$computer)
       }
       Catch
       {
         #Skip to the next computer if we can't talk to this one
         Write-Error ("Error:  Could not open LocalMachine hive on {0}`: {1}" -f $computer, $_)
-        Write-Verbose ("Check Connectivity, permissions, and Remote Registry service for '{0}'" -f $computer)
+        Write-Verbose -Message ("Check Connectivity, permissions, and Remote Registry service for '{0}'" -f $computer)
         Continue
       }
 
       #Loop through the 32 bit and 64 bit registry keys
       foreach($uninstallKey in $UninstallKeys)
       {
-            
         Try
         {
           #Open the Uninstall key
           $regkey = $null
-          $regkey = $reg.OpenSubKey($UninstallKey)
+          $regkey = $reg.OpenSubKey($uninstallKey)
 
           #If the reg key exists...
           if($regkey)
-          {    
-                                        
+          {
             #Retrieve an array of strings containing all the subkey names
             $subkeys = $regkey.GetSubKeyNames()
 
             #Open each Subkey and use GetValue Method to return the required values for each
             foreach($key in $subkeys)
             {
-
               #Build the full path to the key for this software
-              $thisKey = $UninstallKey+'\\'+$key 
+              $thisKey = $uninstallKey+'\\'+$key 
                             
               #Open the subkey for this software
               $thisSubKey = $null
-              $thisSubKey=$reg.OpenSubKey($thisKey)
+              $thisSubKey = $reg.OpenSubKey($thisKey)
                             
               #If the subkey exists
-              if($thisSubKey){
+              if($thisSubKey)
+              {
                 try
                 {
-                            
                   #Get the display name.  If this is not empty we know there is information to show
                   $dispName = $thisSubKey.GetValue('DisplayName')
                                 
@@ -201,16 +212,15 @@ function Get-InstalledSoftware {
                     (-not $Publisher -or $pubName -match $Publisher )
                   )
                   {
-
                     #Display the output object, compatible with PowerShell 2
-                    New-Object PSObject -Property @{
-                      ComputerName = $computer
-                      DisplayName = $dispname
-                      Publisher = $pubName
-                      Version = $thisSubKey.GetValue('DisplayVersion')
-                      UninstallString = $thisSubKey.GetValue('UninstallString') 
-                      InstallDate = $thisSubKey.GetValue('InstallDate')
-                    } | Select-Object ComputerName, DisplayName, Publisher, Version, UninstallString, InstallDate
+                    New-Object -TypeName PSObject -Property @{
+                      ComputerName    = $computer
+                      DisplayName     = $dispName
+                      Publisher       = $pubName
+                      Version         = $thisSubKey.GetValue('DisplayVersion')
+                      UninstallString = $thisSubKey.GetValue('UninstallString')
+                      InstallDate     = $thisSubKey.GetValue('InstallDate')
+                    } | Select-Object -Property ComputerName, DisplayName, Publisher, Version, UninstallString, InstallDate
                   }
                 }
                 Catch
@@ -225,16 +235,15 @@ function Get-InstalledSoftware {
         }
         Catch
         {
-
           #Write verbose output if we couldn't open the uninstall key
-          Write-Verbose ("Could not open key '{0}' on computer '{1}': {2}" -f $uninstallkey, $computer, $_)
+          Write-Verbose -Message ("Could not open key '{0}' on computer '{1}': {2}" -f $uninstallKey, $computer, $_)
 
           #If we see an access denied message, let the user know and provide details, continue to the next computer
-          if($_ -match 'Requested registry access is not allowed'){
+          if($_ -match 'Requested registry access is not allowed')
+          {
             Write-Error ('Registry access to {0} denied.  Check your permissions.  Details: {1}' -f $computer, $_)
             continue computerLoop
           }
-                    
         }
       }
     }
@@ -248,8 +257,10 @@ function Get-IPv4Addr
   (
     [string]$ComputerName = $env:COMPUTERNAME
   )
+  
   process
   {
+    Write-Verbose -Message "Fetching IP Address for $ComputerName"
     try
     {
       $output = @([Net.Dns]::GetHostByName($ComputerName).AddressList | Select-Object -Property IPAddressToString -ExpandProperty IPAddressToString)
@@ -430,26 +441,26 @@ function Get-HostList
 {
   process
   {
+    Import-Module -Name .\bin\Microsoft.ActiveDirectory.Management.dll
     $ComputerList            = @()
     $Computers               = @()
     $ComputerList            = Get-ADComputer -Filter 'OperatingSystem -like "Windows*Server*"'-Properties Name | Select-Object -ExpandProperty Name
     if (Get-Command -Name Get-ADComputer)
     {
-      foreach ($Computer in $ComputerList) 
+      foreach ($computer in $ComputerList) 
       {
-        if (Test-Connection -ComputerName $Computer -Quiet -Count 1)
+        if (Test-Connection -ComputerName $computer -Quiet -Count 1)
         {
-          if (Get-WmiObject -Class Win32_OperatingSystem -ComputerName $Computer)
+          if (Get-WmiObject -Class Win32_OperatingSystem -ComputerName $computer)
           {
-            $Computers = $Computers += $Computer
+            $Computers = $Computers += $computer
           }
         }
       }
     }
     else
     {
-      'Active Directory commands not present, attempting to import Active Directory module.'
-      Import-Module -Global -Name .\Tools\Microsoft.ActiveDirectory.Management.dll
+      'Unable to access Active Directory - Insure the module is loaded or attempt on a domain controller machine.'
     }
     return $Computers
   }
@@ -501,8 +512,19 @@ function Get-LogOns
 function Test-SqlSvr
 {
   param ([string]$ComputerName)
-  $IsSql = Get-Service -ComputerName $ComputerName | Select-Object -Property Status, DisplayName | Where-Object -FilterScript {($_.DisplayName -like '*SQL Server (MSSQLSERVER)*') -and ($_.Status -eq 'Running')}
-  if ($IsSql) {return [Bool]1} else {return [Bool]0}
+  $IsSql = Get-Service -ComputerName $ComputerName |
+  Select-Object -Property Status, DisplayName |
+  Where-Object -FilterScript {
+    ($_.DisplayName -like '*SQL Server (MSSQLSERVER)*') -and ($_.Status -eq 'Running')
+  }
+  if ($IsSql) 
+  {
+    return [Bool]1
+  }
+  else 
+  {
+    return [Bool]0
+  }
 }
 
 function Test-Dell
@@ -511,7 +533,12 @@ function Test-Dell
 
   $Manufacturer   = Get-WmiObject -ComputerName $ComputerName -Class Win32_ComputerSystem | Select-Object -Property Manufacturer -ExpandProperty Manufacturer
 
-  if ($manufacturer -like 'Dell*')
-  {return [Bool]1} else {return [Bool]0}  
-
+  if ($Manufacturer -like 'Dell*')
+  {
+    return [Bool]1
+  }
+  else 
+  {
+    return [Bool]0
+  }
 }

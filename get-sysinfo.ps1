@@ -61,7 +61,7 @@ foreach($ComputerName in $hosts)
     }
     else
     {
-      $varPercInfo = "$ComputerName is not a Dell"
+      $varPercInfo = ('{0} is not a Dell' -f $ComputerName)
     }   
     
     if ($varIsSql)

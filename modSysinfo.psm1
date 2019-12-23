@@ -1,7 +1,7 @@
-﻿
+﻿Import-Module .\PSTerminalServices.psm1 -Force
+
 $ErrorActionPreference = 'SilentlyContinue'
 
-Import-Module -Name .\bin\Cassia.dll
 function Get-SysDevices
 {
   [CmdletBinding()]

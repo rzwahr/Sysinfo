@@ -1,6 +1,6 @@
-﻿Import-Module .\PSTerminalServices.psm1 -Force
+﻿$ErrorActionPreference = 'SilentlyContinue'
 
-$ErrorActionPreference = 'SilentlyContinue'
+Import-Module -Global -Name .\PSTerminalServices.psm1 -Force
 
 function Get-SysDevices
 {

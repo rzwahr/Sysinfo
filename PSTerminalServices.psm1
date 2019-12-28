@@ -1,4 +1,4 @@
-#$script:Server='localhost'
+$script:Server='localhost'
 Import-Module -Name .\bin\Cassia.dll -Force
 
 function Get-TSSession

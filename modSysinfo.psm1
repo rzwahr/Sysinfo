@@ -286,11 +286,11 @@ function Get-PcList
     {
       $output = Get-ADComputer -Filter 'OperatingSystem -notLike "*SERVER*"' -Properties * | Select-Object -Property name, lastlogondate, operatingsystem
       <#foreach ($item in $output)
-      {
-        $newdate = [datetime]::FromFileTime($item.lastlogon)
-        $item.lastlogon = $newdate
-      }
-#>    }
+          {
+          $newdate = [datetime]::FromFileTime($item.lastlogon)
+          $item.lastlogon = $newdate
+          }
+    #>    }
     catch
     {
       ('Error was {0}' -f $_)
@@ -441,12 +441,16 @@ function Get-HostList
 {
   process
   {
-    Import-Module -Name .\bin\Microsoft.ActiveDirectory.Management.dll
-    $ComputerList            = @()
-    $Computers               = @()
-    $ComputerList            = Get-ADComputer -Filter 'OperatingSystem -like "Windows*Server*"'-Properties Name | Select-Object -ExpandProperty Name
-    if (Get-Command -Name Get-ADComputer)
+    if (-not(Get-Command -Name Get-ADComputer))
     {
+      throw 'The Get-PcList function requires the ActiveDirectory module to be loaded.'
+    }
+    try
+    {
+      #Import-Module -Name .\bin\Microsoft.ActiveDirectory.Management.dll
+      $ComputerList            = @()
+      $Computers               = @()
+      $ComputerList            = Get-ADComputer -Filter 'OperatingSystem -like "Windows*Server*"'-Properties Name | Select-Object -ExpandProperty Name
       foreach ($computer in $ComputerList) 
       {
         if (Test-Connection -ComputerName $computer -Quiet -Count 1)
@@ -457,10 +461,10 @@ function Get-HostList
           }
         }
       }
-    }
-    else
+    }    
+    catch
     {
-      'Unable to access Active Directory - Insure the module is loaded or attempt on a domain controller machine.'
+      'There was a problem retrieving the information to populate the host list.  Type $error to see details.'
     }
     return $Computers
   }

@@ -319,6 +319,7 @@ foreach($ComputerName in $hosts)
 Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\Workstation-Report.txt
 Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-Report.txt
 Write-Output -InputObject '     WORKSTATION INFORMATION' | Out-File -Append -FilePath .\Workstation-Report.txt
+Write-Output -InputObject '     Note: OS information may not be current for PCs with in-place OS upgrades' | Out-File -Append -FilePath .\Workstation-Report.txt
 Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-Report.txt
 Write-Output -InputObject $varPcList | Out-File -Append -FilePath .\Workstation-Report.txt
 

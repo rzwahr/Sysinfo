@@ -1,6 +1,6 @@
-﻿param (
-  [string]$varClientNumber = $( Read-Host "Enter Client Number" ),
-  [switch]$local = $false
+﻿[CmdletBinding()]
+param (
+  [string]$varClientNumber = $( Read-Host -Prompt 'Enter Client Number' )
 )
 
 Import-Module -Name .\bin\modSysinfo.psm1 -Force
@@ -16,8 +16,8 @@ if ($varIsDC)
 }
 else
 {
-  Write-Warning 'THIS HOST IS NOT A DOMAIN CONTROLLER'
-  Write-Warning 'Results will be for local host only'
+  Write-Warning -Message "$env:COMPUTERNAME IS NOT A DOMAIN CONTROLLER"
+  Write-Warning -Message 'Results will be for THIS host only, and no workstation inventory will be available'
   $hosts = $env:COMPUTERNAME
 }
 
@@ -324,13 +324,11 @@ foreach($ComputerName in $hosts)
       Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
       Write-Output -InputObject $varPercInfo | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     }
-  
   }
   else 
   {
     ('{0} is unreachable!' -f $ComputerName)
   }
-  
 }
 
 <#Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\Workstation-Report.txt
@@ -343,5 +341,5 @@ foreach($ComputerName in $hosts)
 #>
 if ($varIsDC)
 {
-  $varPcList | Export-CSV -NoTypeInformation -Path .\$varClientNumber-Workstation-Report.csv
+  $varPcList | Export-Csv -NoTypeInformation -Path .\$varClientNumber-Workstation-Report.csv
 }

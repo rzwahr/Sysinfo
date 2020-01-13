@@ -1,9 +1,26 @@
-﻿Import-Module -Global -Name .\bin\modSysinfo.psm1 -Force
+﻿param (
+  [string]$varClientNumber = $( Read-Host "Enter Client Number" ),
+  [switch]$local = $false
+)
+
+Import-Module -Name .\bin\modSysinfo.psm1 -Force
+
+$varIsDC = Test-DC -ComputerName $env:COMPUTERNAME
 
 $ErrorActionPreference = 'SilentlyContinue'
 
-$hosts     = Get-HostList
-$varPcList = Get-PcList
+if ($varIsDC)
+{
+  $hosts     = Get-HostList
+  $varPcList = Get-PcList
+}
+else
+{
+  Write-Warning 'THIS HOST IS NOT A DOMAIN CONTROLLER'
+  Write-Warning 'Results will be for local host only'
+  $hosts = $env:COMPUTERNAME
+}
+
 $varDate   = Get-Date
 
 foreach($ComputerName in $hosts)
@@ -216,96 +233,96 @@ foreach($ComputerName in $hosts)
       }
     }
   
-    Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     SYSTEM IDENTIFICATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Server Name:		' + $varCompSys.Name) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Service Tag:		' + $varBios.SerialNumber) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Manufacturer:		' + $varCompSys.Manufacturer) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Model:			' + $varCompSys.Model) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Domain:			' + $varCompSys.Domain) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('IP Address:		' + $varIPv4addr) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Domain Role:		' + $varDomainRole) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $varRDPInfo | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     SYSTEM PROCESSOR INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     SYSTEM IDENTIFICATION' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Server Name:		' + $varCompSys.Name) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Service Tag:		' + $varBios.SerialNumber) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Manufacturer:		' + $varCompSys.Manufacturer) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Model:			' + $varCompSys.Model) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Domain:			' + $varCompSys.Domain) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('IP Address:		' + $varIPv4addr) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Domain Role:		' + $varDomainRole) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $varRDPInfo | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     SYSTEM PROCESSOR INFORMATION' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     Write-Output -InputObject $varCPU |
     Format-Table -Property $fmtName, $fmtCores |
-    Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     SYSTEM MEMORY INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Total Physical Memory:	' + [math]::Round($varCompSys.TotalPhysicalMemory/1024/1024/1024) + ' GB') | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     SYSTEM MEMORY INFORMATION' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Total Physical Memory:	' + [math]::Round($varCompSys.TotalPhysicalMemory/1024/1024/1024) + ' GB') | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     Write-Output -InputObject $varMemory |
     Format-Table -Property $fmtMemTag, $fmtMemLoc, $fmtMemSize |
-    Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     SYSTEM DEVICES' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $varSysDevices | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     SYSTEM DRIVE SPACE INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $("Server: {0}`tDrives #: {1}" -f $ComputerName, $varDisks.Count) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     SYSTEM DEVICES' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $varSysDevices | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     SYSTEM DRIVE SPACE INFORMATION' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $("Server: {0}`tDrives #: {1}" -f $ComputerName, $varDisks.Count) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     Write-Output -InputObject $varDisks |
     Format-Table -Property $fmtDrive, $fmtVolName, $fmtSize, $fmtFree, $fmtPerc, $fmtMsg |
-    Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     OPERATING SYSTEM INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('OS:            ' + $varOS.Caption) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Build Number:  ' + $varOS.BuildNumber) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject $('Version:       ' + $varOS.Version) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     SQL SERVER INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     OPERATING SYSTEM INFORMATION' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('OS:            ' + $varOS.Caption) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Build Number:  ' + $varOS.BuildNumber) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject $('Version:       ' + $varOS.Version) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     SQL SERVER INFORMATION' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     
     if ($varIsSql)
     {
-      Write-Output -InputObject $varSqlVersion | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-      Write-Output -InputObject $('Cumulative Database Size (GB):  {0}' -f $varDBTotal) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-      Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject $varSqlVersion | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+      Write-Output -InputObject $('Cumulative Database Size (GB):  {0}' -f $varDBTotal) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+      Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
       Write-Output -InputObject $varSqlDbs |
       Sort-Object -Descending -Property UsedSpace |
       Format-Table -Property $fmtDbName, $fmtDbSize |
-      Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+      Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     }
     else
     {
-      Write-Output -InputObject ('{0} is not running the SQL service or SQL is not installed' -f $ComputerName) | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject ('{0} is not running the SQL service or SQL is not installed' -f $ComputerName) | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     }
     
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '     INSTALLED SOFTWARE' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '     INSTALLED SOFTWARE' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     Write-Output -InputObject $varInstalledSw  |
     Format-Table -Property $fmtSWName, $fmtSWversion |
-    Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-    Write-Output -InputObject '' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+    Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+    Write-Output -InputObject '' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     
     if ($varIsDell)
     {
-      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-      Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
-      Write-Output -InputObject $varPercInfo | Out-File -Append -FilePath .\$ComputerName-sysinfo.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+      Write-Output -InputObject '     DELL PERC CONTROLLER AND ARRAY INFORMATION' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+      Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
+      Write-Output -InputObject $varPercInfo | Out-File -Append -FilePath .\$varClientNumber-$ComputerName-sysinfo.txt
     }
   
   }
@@ -317,11 +334,14 @@ foreach($ComputerName in $hosts)
 }
 
 <#Write-Output -InputObject ('Report Run Date: {0}' -f $varDate) | Out-File -FilePath .\Workstation-Report.txt
-Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-Report.txt
-Write-Output -InputObject '     WORKSTATION INFORMATION' | Out-File -Append -FilePath .\Workstation-Report.txt
-Write-Output -InputObject '     Note: OS information may not be current for PCs with in-place OS upgrades' | Out-File -Append -FilePath .\Workstation-Report.txt
-Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-Report.txt
-Write-Output -InputObject $varPcList | Out-File -Append -FilePath .\Workstation-Report.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-Report.txt
+    Write-Output -InputObject '     WORKSTATION INFORMATION' | Out-File -Append -FilePath .\Workstation-Report.txt
+    Write-Output -InputObject '     Note: OS information may not be current for PCs with in-place OS upgrades' | Out-File -Append -FilePath .\Workstation-Report.txt
+    Write-Output -InputObject '-------------------------------------------------------------------------------------------' | Out-File -Append -FilePath .\Workstation-Report.txt
+    Write-Output -InputObject $varPcList | Out-File -Append -FilePath .\Workstation-Report.txt
 
 #>
-$varPcList | Export-CSV -NoTypeInformation -Path .\Workstation-Report.csv
+if ($varIsDC)
+{
+  $varPcList | Export-CSV -NoTypeInformation -Path .\$varClientNumber-Workstation-Report.csv
+}

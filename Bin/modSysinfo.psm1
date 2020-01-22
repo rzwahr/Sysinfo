@@ -386,7 +386,7 @@ function Get-RDP
       $varTermSvc = Get-WmiObject -ComputerName $ComputerName -Class Win32_TerminalService | Select-Object -Property TotalSessions -ExpandProperty TotalSessions
       $output = if ($string -eq '1')
       {
-        ('{0} is enabled with Multiple user mode' -f $ComputerName)
+        ('{0} is a Terminal Server' -f $ComputerName)
         ('Active RDP Sessions:		' + $varTermSvc)
       }
       else
